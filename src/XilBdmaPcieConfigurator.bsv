@@ -4,6 +4,8 @@ import XilBdmaPcieTypes::*;
 import XilBdmaPcieAxiStreamTypes::*;
 import XilBdmaDmaTypes::*;
 
+import Probe::*;
+
 typedef 256 PCIE_CFG_VF_FLR_INPROC_EXTEND_WIDTH;
 
 interface PcieConfigurator;
@@ -41,7 +43,34 @@ module mkPcieConfigurator(PcieConfigurator);
     Reg#(Bool)                  cfgVFFlrDoneReg1    <- mkReg(False);
     Reg#(Bit#(PCIE_CFG_VF_FLR_INPROC_EXTEND_WIDTH)) cfgVfFlrInprocReg0 <- mkReg(0);
     Reg#(PcieCfgFlowControlSel) flowControlSelReg <- mkReg(0);
-    
+
+    Reg#(PcieCfgFlowControlHeaderCredit) probedPostedHeaderCreditReg    <- mkReg(0);
+    Reg#(PcieCfgFlowControlHeaderCredit) probedNonPostedHeaderCreditReg <- mkReg(0);
+    Reg#(PcieCfgFlowControlHeaderCredit) probedCmplHeaderCreditReg      <- mkReg(0);
+    Reg#(PcieCfgFlowControlDataCredit)   probedPostedDataCreditReg      <- mkReg(0);
+    Reg#(PcieCfgFlowControlDataCredit)   probedNonPostedDataCreditReg   <- mkReg(0);
+    Reg#(PcieCfgFlowControlDataCredit)   probedCmplDataCreditReg        <- mkReg(0);
+
+
+    Probe#(PcieCfgFlowControlSel) flowControlSelRegProbe <- mkProbe;
+    Probe#(PcieCfgFlowControlHeaderCredit) probedPostedHeaderCreditRegProbe    <- mkProbe;
+    Probe#(PcieCfgFlowControlHeaderCredit) probedNonPostedHeaderCreditRegProbe <- mkProbe;
+    Probe#(PcieCfgFlowControlHeaderCredit) probedCmplHeaderCreditRegProbe      <- mkProbe;
+    Probe#(PcieCfgFlowControlDataCredit)   probedPostedDataCreditRegProbe      <- mkProbe;
+    Probe#(PcieCfgFlowControlDataCredit)   probedNonPostedDataCreditRegProbe   <- mkProbe;
+    Probe#(PcieCfgFlowControlDataCredit)   probedCmplDataCreditRegProbe        <- mkProbe;
+
+
+    rule updateProbe;
+        flowControlSelRegProbe <= flowControlSelReg;
+        probedPostedHeaderCreditRegProbe <= probedPostedHeaderCreditReg;
+        probedNonPostedHeaderCreditRegProbe <= probedNonPostedHeaderCreditReg;
+        probedCmplHeaderCreditRegProbe <= probedCmplHeaderCreditReg;
+        probedPostedDataCreditRegProbe <= probedPostedDataCreditReg;
+        probedNonPostedDataCreditRegProbe <= probedNonPostedDataCreditReg;
+        probedCmplDataCreditRegProbe <= probedCmplDataCreditReg;
+    endrule
+
     rule functionLevelRst;
         cfgVFFlrFuncNumReg  <= cfgVFFlrFuncNumReg + 1;
         cfgFlrDoneReg1      <= cfgFlrDoneReg0;
@@ -348,6 +377,12 @@ module mkPcieConfigurator(PcieConfigurator);
                 PcieCfgFlowControlDataCredit postedDataCredit,
                 PcieCfgFlowControlDataCredit nonPostedDataCredit,
                 PcieCfgFlowControlDataCredit cmplDataCredit);
+                probedPostedHeaderCreditReg    <= postedHeaderCredit;
+                probedNonPostedHeaderCreditReg <= nonPostedHeaderCredit;
+                probedCmplHeaderCreditReg      <= cmplHeaderCredit;
+                probedPostedDataCreditReg      <= postedDataCredit;
+                probedNonPostedDataCreditReg   <= nonPostedDataCredit;
+                probedCmplDataCreditReg        <= cmplDataCredit;
             endmethod
 
             method PcieCfgFlowControlSel flowControlSel;
@@ -417,5 +452,4 @@ module mkPcieConfigurator(PcieConfigurator);
         endinterface
 
     endinterface
-
 endmodule
