@@ -42,7 +42,7 @@ module mkPcieConfigurator(PcieConfigurator);
     Reg#(PcieCfgVFFlrFuncNum)   cfgVFFlrFuncNumReg1 <- mkReg(0);
     Reg#(Bool)                  cfgVFFlrDoneReg1    <- mkReg(False);
     Reg#(Bit#(PCIE_CFG_VF_FLR_INPROC_EXTEND_WIDTH)) cfgVfFlrInprocReg0 <- mkReg(0);
-    Reg#(PcieCfgFlowControlSel) flowControlSelReg <- mkReg(0);
+    Reg#(PcieCfgFlowControlSel) flowControlSelReg <- mkReg(4);
 
     Reg#(PcieCfgFlowControlHeaderCredit) probedPostedHeaderCreditReg    <- mkReg(0);
     Reg#(PcieCfgFlowControlHeaderCredit) probedNonPostedHeaderCreditReg <- mkReg(0);
@@ -60,6 +60,38 @@ module mkPcieConfigurator(PcieConfigurator);
     Probe#(PcieCfgFlowControlDataCredit)   probedNonPostedDataCreditRegProbe   <- mkProbe;
     Probe#(PcieCfgFlowControlDataCredit)   probedCmplDataCreditRegProbe        <- mkProbe;
 
+    Reg#(Bool) needRecord <- mkReg(False);
+    Reg#(Bit#(64)) postedDataBeatCntReg0 <- mkReg(0);
+    Reg#(Bit#(64)) postedDataBeatCntReg1 <- mkReg(0);
+
+
+    Probe#(Bool) needRecordProbe <- mkProbe;
+    Probe#(Bit#(64)) postedDataBeatCntReg0Probe <- mkProbe;
+    Probe#(Bit#(64)) postedDataBeatCntReg1Probe <- mkProbe;
+
+    rule updateBeat;
+        if (needRecord) begin
+            postedDataBeatCntReg0 <= postedDataBeatCntReg0 + 1;
+        end
+        else begin
+            postedDataBeatCntReg1 <= postedDataBeatCntReg1 + 1;
+        end
+        if (probedPostedDataCreditReg < 16) begin
+            if (!needRecord) begin
+                postedDataBeatCntReg0 <= 0;
+                needRecord <= True;
+            end
+        end
+        else begin
+            if (needRecord) begin
+            postedDataBeatCntReg1 <= 0;
+            needRecord <= False;
+            end
+        end
+        needRecordProbe <= needRecord;
+        postedDataBeatCntReg0Probe <= postedDataBeatCntReg0;
+        postedDataBeatCntReg1Probe <= postedDataBeatCntReg1;
+    endrule
 
     rule updateProbe;
         flowControlSelRegProbe <= flowControlSelReg;
@@ -78,15 +110,15 @@ module mkPcieConfigurator(PcieConfigurator);
         cfgVFFlrFuncNumReg1 <= cfgVFFlrFuncNumReg;
     endrule
 
-    rule updateFlowControlSelReg;
-        case (flowControlSelReg)
-            0: flowControlSelReg <= 2;
-            2: flowControlSelReg <= 4;
-            4: flowControlSelReg <= 5;
-            5: flowControlSelReg <= 6;
-            6: flowControlSelReg <= 0;
-        endcase
-    endrule
+    //rule updateFlowControlSelReg;
+    //    case (flowControlSelReg)
+    //        0: flowControlSelReg <= 2;
+    //        2: flowControlSelReg <= 4;
+    //        4: flowControlSelReg <= 5;
+    //        5: flowControlSelReg <= 6;
+    //        6: flowControlSelReg <= 0;
+    //    endcase
+    //endrule
 
     method Action initCfg;
         TlpPayloadSize defaultTlpMaxSize = fromInteger(valueOf(DEFAULT_TLP_SIZE));
